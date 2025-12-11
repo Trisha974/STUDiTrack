@@ -1,6 +1,11 @@
 ﻿const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 const CSRF_TOKEN = import.meta.env.VITE_CSRF_TOKEN
 
+// Cache for CSRF token
+let csrfTokenCache = null
+let csrfTokenExpiry = 0
+const CSRF_TOKEN_TTL = 50 * 60 * 1000 // 50 minutes (tokens expire after 1 hour)
+
 async function getAuthToken() {
   try {
     const { auth } = await import('../../firebase')
@@ -13,6 +18,45 @@ async function getAuthToken() {
     console.error('Error getting auth token:', error)
     throw error
   }
+}
+
+/**
+ * Get CSRF token - fetches from server if needed
+ */
+async function getCSRFToken() {
+  // Use environment variable token if available (for registration)
+  if (CSRF_TOKEN) {
+    return CSRF_TOKEN
+  }
+  
+  // Check cache
+  if (csrfTokenCache && Date.now() < csrfTokenExpiry) {
+    return csrfTokenCache
+  }
+  
+  // Try to fetch token from server (requires authentication)
+  try {
+    const token = await getAuthToken()
+    const response = await fetch(`${API_BASE_URL}/csrf-token`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    })
+    
+    if (response.ok) {
+      const data = await response.json()
+      csrfTokenCache = data.csrfToken
+      csrfTokenExpiry = Date.now() + CSRF_TOKEN_TTL
+      return csrfTokenCache
+    }
+  } catch (error) {
+    // If we can't get a token, continue without it (some endpoints don't require it)
+    console.warn('Could not fetch CSRF token:', error)
+  }
+  
+  return null
 }
 
 async function apiRequest(endpoint, options = {}) {
@@ -36,8 +80,13 @@ async function apiRequest(endpoint, options = {}) {
       headers['Authorization'] = `Bearer ${token}`
     }
     
-    if (CSRF_TOKEN) {
-      headers['x-csrf-token'] = CSRF_TOKEN
+    // Get CSRF token for state-changing operations
+    const unsafeMethods = ['POST', 'PUT', 'PATCH', 'DELETE']
+    if (unsafeMethods.includes(options.method || 'GET')) {
+      const csrfToken = await getCSRFToken()
+      if (csrfToken) {
+        headers['x-csrf-token'] = csrfToken
+      }
     }
     
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {

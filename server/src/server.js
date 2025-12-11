@@ -2,8 +2,27 @@
 const cors = require('cors')
 require('dotenv').config()
 
+// Security middleware
+const {
+  generalLimiter,
+  authLimiter,
+  registrationLimiter,
+  writeLimiter,
+  speedLimiter,
+  securityHeaders,
+  sanitizeInput,
+  hppProtection,
+  securityLogger,
+  ipSecurity,
+  requestSizeValidator,
+  methodValidator
+} = require('./shared/middleware/security')
+
+const { csrfProtection, getCSRFToken } = require('./shared/middleware/csrf')
+
 const app = express()
 const PORT = process.env.PORT || 5000
+const NODE_ENV = process.env.NODE_ENV || 'development'
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5177'
 const allowedOrigins = [
@@ -23,66 +42,120 @@ const allowedOrigins = [
   'http://127.0.0.1:5178',
 ]
 
+// Add production frontend URL if set
+if (process.env.VERCEL_URL) {
+  allowedOrigins.push(`https://${process.env.VERCEL_URL}`)
+}
+if (process.env.PRODUCTION_FRONTEND_URL) {
+  allowedOrigins.push(process.env.PRODUCTION_FRONTEND_URL)
+}
+
+// Trust proxy for accurate IP addresses (important for rate limiting)
+app.set('trust proxy', 1)
+
+// ============================================
+// SECURITY MIDDLEWARE (Applied in order)
+// ============================================
+
+// 1. Security headers (Helmet)
+app.use(securityHeaders)
+
+// 2. Method validation
+app.use(methodValidator)
+
+// 3. Request size validation
+app.use(requestSizeValidator)
+
+// 4. IP-based security checks
+app.use(ipSecurity)
+
+// 5. Security logging
+app.use(securityLogger)
+
+// 6. CORS configuration (more restrictive in production)
 app.use(cors({
   origin: (origin, callback) => {
+    // In production, reject requests with no origin (except for same-origin requests)
     if (!origin) {
-      console.log('✅ CORS: Allowing request with no origin')
+      if (NODE_ENV === 'production') {
+        console.warn('🚨 CORS: Blocked request with no origin in production')
+        return callback(new Error('CORS: Origin required'))
+      }
+      // Allow in development for tools like Postman
+      console.log('✅ CORS: Allowing request with no origin (development)')
       return callback(null, true)
     }
     
     if (allowedOrigins.includes(origin)) {
-      console.log(`✅ CORS: Allowing origin: ${origin}`)
+      if (NODE_ENV === 'development') {
+        console.log(`✅ CORS: Allowing origin: ${origin}`)
+      }
       callback(null, true)
     } else {
-      console.warn(`⚠️ CORS blocked origin: ${origin}`)
-      console.warn(`⚠️ Allowed origins: ${allowedOrigins.join(', ')}`)
+      // In production, be strict
+      if (NODE_ENV === 'production') {
+        console.warn(`🚨 CORS blocked origin: ${origin}`)
+        return callback(new Error(`Not allowed by CORS. Origin: ${origin}`))
+      }
+      
+      // In development, allow localhost variations
       if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
         console.log(`✅ CORS: Allowing localhost origin in development: ${origin}`)
         callback(null, true)
       } else {
+        console.warn(`⚠️ CORS blocked origin: ${origin}`)
         callback(new Error(`Not allowed by CORS. Origin: ${origin}`))
       }
     }
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token'],
+  exposedHeaders: ['x-csrf-token'],
+  maxAge: 86400 // 24 hours
 }))
+
+// 7. Body parsing with limits
 app.use(express.json({ limit: '50mb' }))
 app.use(express.urlencoded({ extended: true, limit: '50mb' }))
 
-const CSRF_SECRET = process.env.CSRF_SECRET
-const CSRF_HEADER_NAME = 'x-csrf-token'
+// 8. HTTP Parameter Pollution protection
+app.use(hppProtection)
 
-const PUBLIC_ENDPOINTS = [
-  '/api/students',
-  '/api/professors',
-]
+// 9. Input sanitization (protects against XSS, SQL injection)
+app.use(sanitizeInput)
 
-app.use((req, res, next) => {
-  const unsafeMethods = ['POST', 'PUT', 'PATCH', 'DELETE']
-  if (!unsafeMethods.includes(req.method)) {
-    return next()
+// 10. Speed limiting (slow down after burst)
+app.use(speedLimiter)
+
+// 11. General rate limiting
+app.use('/api', generalLimiter)
+
+// 12. Write operation rate limiting
+app.use('/api', (req, res, next) => {
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+    return writeLimiter(req, res, next)
   }
-
-  const isRegistrationEndpoint = PUBLIC_ENDPOINTS.some(endpoint => 
-    req.path === endpoint || req.path.startsWith(endpoint + '/')
-  )
-  if (isRegistrationEndpoint && req.method === 'POST') {
-    console.log(`✅ Skipping CSRF check for registration endpoint: ${req.path}`)
-    return next()
-  }
-
-  if (!CSRF_SECRET) {
-    return next()
-  }
-
-  const token = req.headers[CSRF_HEADER_NAME]
-
-  if (!token || token !== CSRF_SECRET) {
-    return res.status(403).json({ error: 'Invalid or missing CSRF token' })
-  }
-
-  return next()
+  next()
 })
+
+// 13. Authentication endpoint rate limiting
+app.use('/api/students', (req, res, next) => {
+  if (req.path === '/api/students' && req.method === 'POST') {
+    return registrationLimiter(req, res, next)
+  }
+  next()
+})
+
+app.use('/api/professors', (req, res, next) => {
+  if (req.path === '/api/professors' && req.method === 'POST') {
+    return registrationLimiter(req, res, next)
+  }
+  next()
+})
+
+// 14. CSRF protection
+app.use(csrfProtection)
 
 app.use('/api/students', require('./student/routes/students'))
 app.use('/api/professors', require('./professor/routes/professors'))
@@ -93,8 +166,17 @@ app.use('/api/attendance', require('./professor/routes/attendance'))
 app.use('/api/notifications', require('./shared/routes/notifications'))
 app.use('/api/reports', require('./professor/routes/reports'))
 
+// CSRF token endpoint (requires authentication)
+app.get('/api/csrf-token', require('./shared/middleware/auth').verifyTokenOnly, getCSRFToken)
+
+// Health check endpoint (no rate limiting)
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Server is running' })
+  res.json({ 
+    status: 'ok', 
+    message: 'Server is running',
+    timestamp: new Date().toISOString(),
+    environment: NODE_ENV
+  })
 })
 
 const errorHandler = require('./shared/middleware/errorHandler')
