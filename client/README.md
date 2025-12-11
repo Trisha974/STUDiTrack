@@ -86,3 +86,5 @@ The built files will be in the `dist` directory.
 - State management uses React hooks (useState, useEffect)
 - LocalStorage is used for data persistence (same as original)
 
+# STUDITrack Project
+This project is now version controlled on GitHub!
