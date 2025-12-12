@@ -1,28 +1,23 @@
 import { useMemo } from 'react'
 
 /**
- * Custom hook for transforming MySQL student data into dashboard format
- * Extracted from Student.jsx to improve maintainability and reusability
+ * Transforms MySQL data (enrollments, courses, grades, attendance) into dashboard format
+ * @param {Array} enrollmentsData - Student enrollments from MySQL
+ * @param {Array} coursesData - Course data from MySQL
+ * @param {Array} gradesData - Grade data from MySQL
+ * @param {Array} attendanceData - Attendance data from MySQL
+ * @param {string} studentName - Student's name
+ * @param {Array} notifications - Notifications array
+ * @returns {Object} Transformed dashboard data
  */
-export function useStudentDashboardTransform() {
-  /**
-   * Transforms MySQL data (enrollments, courses, grades, attendance) into dashboard format
-   * @param {Array} enrollmentsData - Student enrollments from MySQL
-   * @param {Array} coursesData - Course data from MySQL
-   * @param {Array} gradesData - Grade data from MySQL
-   * @param {Array} attendanceData - Attendance data from MySQL
-   * @param {string} studentName - Student's name
-   * @param {Array} notifications - Notifications array
-   * @returns {Object} Transformed dashboard data
-   */
-  const transformDashboardDataFromMySQL = (
+export function transformDashboardDataFromMySQL(
     enrollmentsData,
     coursesData,
     gradesData,
     attendanceData,
     studentName,
     notifications = []
-  ) => {
+  ) {
 
 
     const courseMap = new Map()
@@ -365,8 +360,13 @@ export function useStudentDashboardTransform() {
     }
     
     return result
-  }
+}
 
+/**
+ * Custom hook for transforming MySQL student data into dashboard format
+ * Extracted from Student.jsx to improve maintainability and reusability
+ */
+export function useStudentDashboardTransform() {
   /**
    * Calculates dashboard statistics from transformed subject data (fallback method)
    * @param {Object} data - Transformed dashboard data with firstTerm and secondTerm

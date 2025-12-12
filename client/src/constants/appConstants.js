@@ -33,6 +33,9 @@ export const DEPARTMENTS = [
   'Department of Engineering Education'
 ]
 
+export const DASHBOARD_COLLECTION = 'professorDashboards'
+export const STUDENT_DASHBOARD_COLLECTION = 'studentDashboards'
+
 
 export const ASSESSMENT_TYPES = {
   QUIZ: 'quiz',

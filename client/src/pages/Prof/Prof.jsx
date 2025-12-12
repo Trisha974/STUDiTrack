@@ -401,7 +401,6 @@ function Prof() {
   const isImportingRef = useRef(false)
   const lastImportTimeRef = useRef(0)
   const dataLoadTimeRef = useRef(0)
-  const [alreadyEnrolledMessage, setAlreadyEnrolledMessage] = useState(null)
 
 
   const subjectManagement = useSubjectManagement({
@@ -581,8 +580,6 @@ function Prof() {
   const [deleteSubjectMode, setDeleteSubjectMode] = useState('delete')
   const [subjectsView, setSubjectsView] = useState('active')
   const [archivedSubjectsSearchTerm, setArchivedSubjectsSearchTerm] = useState('')
-  const [showRestoreSubjectDropdown, setShowRestoreSubjectDropdown] = useState(false)
-  const [showNewStudentSubjectDropdown, setShowNewStudentSubjectDropdown] = useState(false)
   const restoreSubjectDropdownRef = useRef(null)
   const newStudentSubjectDropdownRef = useRef(null)
   const [isAddingStudentToSubject, setIsAddingStudentToSubject] = useState(false)

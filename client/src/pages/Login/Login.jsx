@@ -20,7 +20,7 @@ import {
   PASSWORD_CONFIG, 
   EMAIL_PATTERNS, 
   DEPARTMENTS 
-} from '../../constants'
+} from '../../constants/appConstants'
 
 const CONFIG = {
   PASSWORD_MIN_LENGTH: PASSWORD_CONFIG.MIN_LENGTH,
@@ -1401,7 +1401,7 @@ if (error.code === 'auth/email-already-in-use') {
 
                   <p>Access to certain portions of this website ("Password-Protected Areas") may require login and password information. You must have this information in order to access these areas.</p>
 
-                  <p>The use of your personally identifying and non-personal information will be governed by the Privacy Statement found at <a href="https://umindanao.edu.ph" target="_blank" rel="noopener noreferrer" className="terms-link">https:
+                  <p>The use of your personally identifying and non-personal information will be governed by the Privacy Statement found at <a href="https://umindanao.edu.ph" target="_blank" rel="noopener noreferrer" className="terms-link">https://umindanao.edu.ph</a>.</p>
 
                   <p>Your use of this website indicates that you have read and agree to the Privacy Statement.</p>
 

@@ -145,7 +145,6 @@ export default function ProtectedRoute({ children, requiredRole = 'Professor' })
           requiredRole
         })
 
-      try {
         if (requiredRole === 'Professor' && emailType !== 'professor') {
           console.error('🚫🚫🚫🚫🚫 DOUBLE CHECK BLOCK: Student email in professor route', {
             email: user.email,
