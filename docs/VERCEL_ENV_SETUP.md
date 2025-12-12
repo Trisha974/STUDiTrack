@@ -20,15 +20,34 @@ VITE_FIREBASE_APP_ID=your-firebase-app-id
 VITE_FIREBASE_MEASUREMENT_ID=your-measurement-id (optional)
 ```
 
-### Backend API URL
+### Backend API URL (CRITICAL - Required for Production)
+
+**⚠️ IMPORTANT:** Without this, your app will try to connect to `localhost:5000` which won't work in production!
 
 ```
 VITE_API_URL=https://your-backend-url.com/api
 ```
 
-Or if your backend is on the same domain:
+**Examples:**
+- If your backend is at `https://api.studentitrack.com`:
+  ```
+  VITE_API_URL=https://api.studentitrack.com/api
+  ```
+
+- If your backend is on the same domain:
+  ```
+  VITE_API_URL=https://studentitrack.com/api
+  ```
+
+- If your backend is on Hostinger:
+  ```
+  VITE_API_URL=https://your-domain.com/api
+  ```
+
+**⚠️ If you don't set this, you'll see CORS errors like:**
 ```
-VITE_API_URL=https://yourdomain.com/api
+Access to fetch at 'http://localhost:5000/api/...' from origin 'https://studentitrack.vercel.app' 
+has been blocked by CORS policy
 ```
 
 ### CSRF Token (if required)

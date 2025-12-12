@@ -195,17 +195,17 @@ if (!isProfessor && emailType !== 'student') {
       return
     }
 
-if (!isValidEmail(trimmedEmail, !isProfessor)) {
+    if (!isValidEmail(trimmedEmail, !isProfessor)) {
       setAuthError(`Invalid ${isProfessor ? 'professor' : 'student'} email format. ${isProfessor ? 'Professors must use format: initials@umindanao.edu.ph' : 'Students must use format: initial.surname.studentid.tc@umindanao.edu.ph'}`)
       return
     }
+
+    const trimmedPassword = loginData.password.trim()
 
     try {
       setIsSubmitting(true)
       setAuthError('')
       setSuccessMessage('')
-
-const trimmedPassword = loginData.password.trim()
       console.log('🔐 Attempting login:', {
         email: trimmedEmail,
         emailLength: trimmedEmail.length,

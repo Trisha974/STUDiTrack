@@ -45,6 +45,12 @@ if (process.env.PRODUCTION_FRONTEND_URL) {
   allowedOrigins.push(process.env.PRODUCTION_FRONTEND_URL)
 }
 
+if (process.env.VERCEL_URL) {
+  allowedOrigins.push(`https://${process.env.VERCEL_URL}`)
+}
+
+allowedOrigins.push('https://studentitrack.vercel.app')
+
 app.set('trust proxy', 1)
 
 
