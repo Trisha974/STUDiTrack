@@ -1,4 +1,6 @@
-﻿const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+﻿import { auth, signOutUser } from '../../firebase'
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 const CSRF_TOKEN = import.meta.env.VITE_CSRF_TOKEN
 
 let csrfTokenCache = null
@@ -7,7 +9,6 @@ const CSRF_TOKEN_TTL = 50 * 60 * 1000
 
 async function getAuthToken() {
   try {
-    const { auth } = await import('../../firebase')
     const user = auth.currentUser
     if (!user) {
       throw new Error('No authenticated user')
@@ -105,7 +106,6 @@ async function apiRequest(endpoint, options = {}) {
       } else if (response.status === 403) {
         throw new Error(`Access denied (403): ${errorMessage}`)
       } else if (response.status === 401) {
-        const { signOutUser } = await import('../../firebase')
         try {
           await signOutUser()
         } catch (signOutError) {
