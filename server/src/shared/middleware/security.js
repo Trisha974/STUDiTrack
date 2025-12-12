@@ -8,7 +8,7 @@ const validator = require('validator')
  * Security middleware to protect against common attacks including Burp Suite testing
  */
 
-// Rate limiting configurations
+
 const createRateLimiter = (windowMs, max, message) => {
   return rateLimit({
     windowMs,
@@ -17,11 +17,11 @@ const createRateLimiter = (windowMs, max, message) => {
     standardHeaders: true,
     legacyHeaders: false,
     skip: (req) => {
-      // Skip rate limiting for health checks
+
       return req.path === '/api/health'
     },
     handler: (req, res) => {
-      // Log suspicious activity
+
       console.warn('🚨 Rate limit exceeded:', {
         ip: req.ip,
         path: req.path,
@@ -37,40 +37,40 @@ const createRateLimiter = (windowMs, max, message) => {
   })
 }
 
-// General API rate limiter - 100 requests per 15 minutes
+
 const generalLimiter = createRateLimiter(
-  15 * 60 * 1000, // 15 minutes
+  15 * 60 * 1000,
   100,
   'Too many requests from this IP, please try again later'
 )
 
-// Strict rate limiter for authentication endpoints - 5 requests per 15 minutes
+
 const authLimiter = createRateLimiter(
-  15 * 60 * 1000, // 15 minutes
+  15 * 60 * 1000,
   5,
   'Too many authentication attempts, please try again later'
 )
 
-// Strict rate limiter for registration endpoints - 3 requests per hour
+
 const registrationLimiter = createRateLimiter(
-  60 * 60 * 1000, // 1 hour
+  60 * 60 * 1000,
   3,
   'Too many registration attempts, please try again later'
 )
 
-// Rate limiter for write operations (POST, PUT, PATCH, DELETE) - 50 requests per 15 minutes
+
 const writeLimiter = createRateLimiter(
-  15 * 60 * 1000, // 15 minutes
+  15 * 60 * 1000,
   50,
   'Too many write operations, please try again later'
 )
 
-// Slow down requests after initial burst
+
 const speedLimiter = slowDown({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  delayAfter: 50, // Allow 50 requests at full speed
-  delayMs: 100, // Add 100ms delay per request after delayAfter
-  maxDelayMs: 2000, // Maximum delay of 2 seconds
+  windowMs: 15 * 60 * 1000,
+  delayAfter: 50,
+  delayMs: 100,
+  maxDelayMs: 2000,
   skip: (req) => req.path === '/api/health'
 })
 
@@ -92,10 +92,10 @@ const securityHeaders = helmet({
       upgradeInsecureRequests: []
     }
   },
-  crossOriginEmbedderPolicy: false, // Disable for compatibility
+  crossOriginEmbedderPolicy: false,
   crossOriginResourcePolicy: { policy: "cross-origin" },
   hsts: {
-    maxAge: 31536000, // 1 year
+    maxAge: 31536000,
     includeSubDomains: true,
     preload: true
   },
@@ -119,20 +119,20 @@ const sanitizeInput = (req, res, next) => {
     const sanitized = {}
     for (const [key, value] of Object.entries(obj)) {
       if (typeof value === 'string') {
-        // Remove potentially dangerous characters and patterns
+
         let sanitizedValue = value
         
-        // Remove SQL injection patterns
+
         sanitizedValue = sanitizedValue.replace(/['";\\]/g, '')
         
-        // Remove script tags and event handlers
+
         sanitizedValue = sanitizedValue.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
         sanitizedValue = sanitizedValue.replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
         
-        // Escape HTML entities
+
         sanitizedValue = validator.escape(sanitizedValue)
         
-        // Trim whitespace
+
         sanitizedValue = sanitizedValue.trim()
         
         sanitized[key] = sanitizedValue
@@ -161,7 +161,7 @@ const sanitizeInput = (req, res, next) => {
  * Prevents parameter pollution attacks
  */
 const hppProtection = hpp({
-  whitelist: ['id', 'studentId', 'professorId', 'courseId', 'enrollmentId'] // Allow these parameters to have multiple values
+  whitelist: ['id', 'studentId', 'professorId', 'courseId', 'enrollmentId']
 })
 
 /**
@@ -170,7 +170,7 @@ const hppProtection = hpp({
 const securityLogger = (req, res, next) => {
   const startTime = Date.now()
   
-  // Log suspicious patterns
+
   const suspiciousPatterns = [
     /union.*select/i,
     /drop.*table/i,
@@ -179,7 +179,7 @@ const securityLogger = (req, res, next) => {
     /<script/i,
     /javascript:/i,
     /on\w+\s*=/i,
-    /\.\.\//, // Path traversal
+    /\.\.\
     /eval\(/i,
     /exec\(/i
   ]
@@ -231,7 +231,7 @@ const securityLogger = (req, res, next) => {
 const ipSecurity = (req, res, next) => {
   const ip = req.ip || req.connection.remoteAddress
   
-  // Block requests from suspicious user agents (common in Burp Suite)
+
   const userAgent = req.get('user-agent') || ''
   const suspiciousUserAgents = [
     'burpsuite',
@@ -255,7 +255,7 @@ const ipSecurity = (req, res, next) => {
     })
   }
   
-  // Check for common attack headers
+
   const attackHeaders = [
     'x-forwarded-for',
     'x-real-ip',
@@ -264,7 +264,7 @@ const ipSecurity = (req, res, next) => {
     'x-remote-addr'
   ]
   
-  // Log if multiple IP headers are present (potential IP spoofing)
+
   const ipHeaders = attackHeaders.filter(header => req.get(header))
   if (ipHeaders.length > 2) {
     console.warn('🚨 Multiple IP headers detected (possible IP spoofing):', {
@@ -283,7 +283,7 @@ const ipSecurity = (req, res, next) => {
  */
 const requestSizeValidator = (req, res, next) => {
   const contentLength = req.get('content-length')
-  const maxSize = 50 * 1024 * 1024 // 50MB (matching express.json limit)
+  const maxSize = 50 * 1024 * 1024
   
   if (contentLength && parseInt(contentLength) > maxSize) {
     return res.status(413).json({

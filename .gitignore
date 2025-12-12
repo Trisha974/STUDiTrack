@@ -1,0 +1,62 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build outputs
+client/dist/
+server/logs/
+
+# Environment variables
+.env
+.env.local
+.env.production
+.env.development
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Backup files
+*.backup
+*.temp
+*.bak
+*.old
+
+# Temporary files
+*.tmp
+*.ps1
+!server/scripts/*.ps1
+!scripts/*.ps1
+
+# Database exports
+*.sql
+!sql/schema.sql
+!sql/database-export.sql
+
+# Firebase
+.firebase/
+.firebaserc
+
+# Vercel
+.vercel/
+
+# Testing
+coverage/
+.nyc_output/
+
+# Misc
+*.pid
+*.seed
+*.pid.lock
+

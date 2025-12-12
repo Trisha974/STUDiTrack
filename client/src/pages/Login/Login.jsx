@@ -7,20 +7,28 @@ import { registerWithEmail, signIn as firebaseSignIn, saveUserProfile, signOutUs
 import { setProfessor, getProfessorByUid } from '../../services/professors'
 import { setStudent, getStudentByUid } from '../../services/students'
 import { getDefaultAvatar } from '../../utils/avatarGenerator'
+import { 
+  isValidEmail, 
+  isValidPassword, 
+  checkPasswordStrength,
+  isValidEmailDomain,
+  detectEmailType
+} from '../../utils/validationHelpers'
+import { 
+  USER_ROLES, 
+  USER_TYPES, 
+  PASSWORD_CONFIG, 
+  EMAIL_PATTERNS, 
+  DEPARTMENTS 
+} from '../../constants'
 
 const CONFIG = {
-  PASSWORD_MIN_LENGTH: 6,
-  PASSWORD_STRENGTH_MIN_LENGTH: 8,
-  STUDENT_EMAIL_REGEX: /^[a-z]+(\.[a-z]+)+\.\d+\.tc@umindanao\.edu\.ph$/i,
-  PROFESSOR_EMAIL_REGEX: /^[a-z0-9]+@umindanao\.edu\.ph$/i,
-  USER_TYPES: {
-    PROFESSOR: 'Professor',
-    STUDENT: 'Student'
-  },
-  DEPARTMENTS: [
-    'Department of Computing Education',
-    'Department of Engineering Education'
-  ]
+  PASSWORD_MIN_LENGTH: PASSWORD_CONFIG.MIN_LENGTH,
+  PASSWORD_STRENGTH_MIN_LENGTH: PASSWORD_CONFIG.STRENGTH_MIN_LENGTH,
+  STUDENT_EMAIL_REGEX: EMAIL_PATTERNS.STUDENT,
+  PROFESSOR_EMAIL_REGEX: EMAIL_PATTERNS.PROFESSOR,
+  USER_TYPES: USER_ROLES,
+  DEPARTMENTS: DEPARTMENTS
 }
 
 function Login() {
@@ -65,11 +73,15 @@ useEffect(() => {
         if (currentUser) {
           try {
             const userData = JSON.parse(currentUser)
+            const emailType = detectEmailType(user.email || userData.email)
 
-            if (userData.type === 'Professor') {
+            if (userData.type === 'Professor' && emailType === 'professor') {
               navigate('/prof', { replace: true })
-            } else if (userData.type === 'Student') {
+            } else if (userData.type === 'Student' && emailType === 'student') {
               navigate('/student', { replace: true })
+            } else {
+              console.warn('Role mismatch detected, clearing session')
+              sessionStorage.removeItem('currentUser')
             }
           } catch (err) {
             console.warn('Failed to parse current user', err)
@@ -89,10 +101,14 @@ const handlePopState = (event) => {
 
             window.history.pushState(null, '', window.location.pathname)
 
-            if (userData.type === 'Professor') {
+            const emailType = detectEmailType(userData.email)
+            if (userData.type === 'Professor' && emailType === 'professor') {
               navigate('/prof', { replace: true })
-            } else if (userData.type === 'Student') {
+            } else if (userData.type === 'Student' && emailType === 'student') {
               navigate('/student', { replace: true })
+            } else {
+              console.warn('Role mismatch detected in popstate, clearing session')
+              sessionStorage.removeItem('currentUser')
             }
           }
         } catch (err) {
@@ -111,43 +127,22 @@ window.history.pushState(null, '', window.location.pathname)
     }
   }, [navigate])
 
-  const isValidEmail = (email, isStudent = false) => {
-    if (!email) return false
-    const trimmed = email.trim()
-    return isStudent
-      ? CONFIG.STUDENT_EMAIL_REGEX.test(trimmed)
-      : CONFIG.PROFESSOR_EMAIL_REGEX.test(trimmed)
-  }
-
-  const isValidPassword = (password) => {
-    if (password.length < CONFIG.PASSWORD_STRENGTH_MIN_LENGTH) return false
-    return /[A-Z]/.test(password) && /[a-z]/.test(password) && /\d/.test(password) && /[^A-Za-z0-9]/.test(password)
-  }
-
-  const checkPasswordStrength = (password) => {
-    let strength = 0
-    if (password.length >= CONFIG.PASSWORD_STRENGTH_MIN_LENGTH) strength++
-    if (/[a-z]/.test(password)) strength++
-    if (/[A-Z]/.test(password)) strength++
-    if (/[0-9]/.test(password)) strength++
-    if (/[^A-Za-z0-9]/.test(password)) strength++
-    return ['weak', 'weak', 'fair', 'good', 'strong'][strength - 1] || 'weak'
-  }
 
   const handlePasswordChange = (password, type) => {
-
     let error = ''
     if (password.length > 0 && password.length < CONFIG.PASSWORD_STRENGTH_MIN_LENGTH) {
       error = `Password must be at least ${CONFIG.PASSWORD_STRENGTH_MIN_LENGTH} characters long`
     }
 
+    const strength = checkPasswordStrength(password)
+    
     if (type === 'professor') {
       setProfessorSignUp(prev => ({ ...prev, password }))
-      setPasswordStrength(prev => ({ ...prev, professor: checkPasswordStrength(password) }))
+      setPasswordStrength(prev => ({ ...prev, professor: strength }))
       setPasswordError(prev => ({ ...prev, professor: error }))
     } else {
       setStudentSignUp(prev => ({ ...prev, password }))
-      setPasswordStrength(prev => ({ ...prev, student: checkPasswordStrength(password) }))
+      setPasswordStrength(prev => ({ ...prev, student: strength }))
       setPasswordError(prev => ({ ...prev, student: error }))
     }
   }
@@ -179,8 +174,30 @@ if (!trimmedEmail || !trimmedEmail.includes('@') || trimmedEmail.length < 5) {
       return
     }
 
+if (!trimmedEmail.toLowerCase().endsWith('@umindanao.edu.ph')) {
+      setAuthError('Only @umindanao.edu.ph email addresses are allowed. Non-umindanao emails cannot login or sign up.')
+      return
+    }
+
+const emailType = detectEmailType(trimmedEmail)
+    if (!emailType) {
+      setAuthError('Invalid email format. Professor format: ljorcullo@umindanao.edu.ph. Student format: t.talamillo.141715.tc@umindanao.edu.ph')
+      return
+    }
+
+if (isProfessor && emailType !== 'professor') {
+      setAuthError('This email belongs to a student account. Please select "Student" to login.')
+      return
+    }
+
+if (!isProfessor && emailType !== 'student') {
+      setAuthError('This email belongs to a professor account. Please select "Professor" to login.')
+      return
+    }
+
 if (!isValidEmail(trimmedEmail, !isProfessor)) {
-      console.warn(`⚠️ Email format doesn't match expected ${isProfessor ? 'professor' : 'student'} pattern, but attempting login anyway:`, trimmedEmail)
+      setAuthError(`Invalid ${isProfessor ? 'professor' : 'student'} email format. ${isProfessor ? 'Professors must use format: initials@umindanao.edu.ph' : 'Students must use format: initial.surname.studentid.tc@umindanao.edu.ph'}`)
+      return
     }
 
     try {
@@ -198,67 +215,156 @@ const trimmedPassword = loginData.password.trim()
       const credential = await firebaseSignIn(trimmedEmail, trimmedPassword)
       const { user } = credential
 
-const profilePromise = isProfessor
-        ? getProfessorByUid(user.uid)
-        : getStudentByUid(user.uid)
-
-const fallbackName = user.displayName || loginData.email.split('@')[0]
-      let profile = null
-
-      try {
-        profile = await profilePromise
-      } catch (profileError) {
-        console.warn('Unable to load profile from Firestore', profileError)
+      const detectedEmailType = detectEmailType(user.email)
+      if (!detectedEmailType) {
+        setAuthError('Invalid email format. Only @umindanao.edu.ph emails are allowed.')
+        await signOutUser()
+        setIsSubmitting(false)
+        return
+      }
+      
+      if (isProfessor && detectedEmailType !== 'professor') {
+        setAuthError('🚫 CRITICAL: This email belongs to a student account. Students cannot access the professor dashboard. Please select "Student" to login.')
+        await signOutUser()
+        setIsSubmitting(false)
+        return
+      }
+      
+      if (!isProfessor && detectedEmailType !== 'student') {
+        setAuthError('🚫 CRITICAL: This email belongs to a professor account. Professors cannot access the student dashboard. Please select "Professor" to login.')
+        await signOutUser()
+        setIsSubmitting(false)
+        return
       }
 
-if (!profile) {
+      const actualRole = detectedEmailType === 'professor' ? 'PROFESSOR' : 'STUDENT'
+      const actualIsProfessor = detectedEmailType === 'professor'
 
-        const defaultPhotoURL = getDefaultAvatar(fallbackName, user.uid)
-        profile = {
-          name: fallbackName,
-          email: user.email,
-          role: CONFIG.USER_TYPES[isProfessor ? 'PROFESSOR' : 'STUDENT'],
-          ...(isProfessor
-            ? { department: '', photoURL: defaultPhotoURL }
-            : { studentId: '', department: '', photoURL: defaultPhotoURL })
+      console.log('🔐 Login: Fetching profile based on email type', {
+        email: user.email,
+        emailType: detectedEmailType,
+        checkingDatabase: actualIsProfessor ? 'professor' : 'student'
+      })
+
+      let profile = null
+      try {
+        if (actualIsProfessor) {
+          profile = await getProfessorByUid(user.uid)
+          if (!profile) {
+            console.error('🚫 CRITICAL: Professor email but no professor account found in database')
+            setAuthError('🚫 No professor account found for this email. Please sign up first or contact support.')
+            await signOutUser()
+            setIsSubmitting(false)
+            return
+          }
+          
+          if (profile.email) {
+            const profileEmailType = detectEmailType(profile.email)
+            if (profileEmailType !== 'professor') {
+              console.error('🚫 CRITICAL: Professor profile has student email!', {
+                profileEmail: profile.email,
+                profileEmailType,
+                authEmail: user.email
+              })
+              setAuthError('🚫 CRITICAL: Account data mismatch. Please contact support.')
+              await signOutUser()
+              setIsSubmitting(false)
+              return
+            }
+          }
+        } else {
+          profile = await getStudentByUid(user.uid)
+          if (!profile) {
+            console.error('🚫 CRITICAL: Student email but no student account found in database')
+            setAuthError('🚫 No student account found for this email. Please sign up first or contact support.')
+            await signOutUser()
+            setIsSubmitting(false)
+            return
+          }
+          
+          if (profile.email) {
+            const profileEmailType = detectEmailType(profile.email)
+            if (profileEmailType !== 'student') {
+              console.error('🚫 CRITICAL: Student profile has professor email!', {
+                profileEmail: profile.email,
+                profileEmailType,
+                authEmail: user.email
+              })
+              setAuthError('🚫 CRITICAL: Account data mismatch. Please contact support.')
+              await signOutUser()
+              setIsSubmitting(false)
+              return
+            }
+          }
         }
+      } catch (profileError) {
+        console.error('Failed to load profile:', profileError)
+        if (profileError.message?.includes('401') || profileError.message?.includes('403') || profileError.message?.includes('404')) {
+          setAuthError(`🚫 No ${actualIsProfessor ? 'professor' : 'student'} account found for this email. Please sign up first.`)
+          await signOutUser()
+          setIsSubmitting(false)
+          return
+        }
+        setAuthError('Failed to verify account. Please try again or contact support.')
+        await signOutUser()
+        setIsSubmitting(false)
+        return
+      }
 
-        const saveProfilePromise = isProfessor
-          ? setProfessor(user.uid, profile)
-          : setStudent(user.uid, profile)
-        saveProfilePromise.catch(err => console.warn('Background profile save failed', err))
-      } else if (!profile.photoURL) {
+      if (!profile) {
+        setAuthError(`🚫 No ${actualIsProfessor ? 'professor' : 'student'} account found for this email. Please sign up first.`)
+        await signOutUser()
+        setIsSubmitting(false)
+        return
+      }
 
+      if (profile.role !== CONFIG.USER_TYPES[actualRole]) {
+        console.error('🚫 CRITICAL: Profile role mismatch!', {
+          profileRole: profile.role,
+          expectedRole: CONFIG.USER_TYPES[actualRole],
+          emailType: detectedEmailType
+        })
+        setAuthError('🚫 CRITICAL: Account role mismatch detected. Please contact support.')
+        await signOutUser()
+        setIsSubmitting(false)
+        return
+      }
+
+      const fallbackName = user.displayName || loginData.email.split('@')[0]
+      
+      if (!profile.photoURL) {
         const defaultPhotoURL = getDefaultAvatar(
           profile.name || fallbackName,
           user.uid
         )
         profile.photoURL = defaultPhotoURL
 
-        const updateProfilePromise = isProfessor
+        const updateProfilePromise = actualIsProfessor
           ? setProfessor(user.uid, { ...profile, photoURL: defaultPhotoURL })
           : setStudent(user.uid, { ...profile, photoURL: defaultPhotoURL })
         updateProfilePromise.catch(err => console.warn('Background avatar update failed', err))
       }
 
-const displayName = profile?.name || fallbackName
+      const displayName = profile?.name || fallbackName
+      
       const userData = {
         uid: user.uid,
-        type: CONFIG.USER_TYPES[isProfessor ? 'PROFESSOR' : 'STUDENT'],
+        type: CONFIG.USER_TYPES[actualRole],
         email: user.email,
         name: displayName,
-        ...(isProfessor
+        ...(actualIsProfessor
           ? { department: profile?.department || '' }
           : { studentId: profile?.studentId || '', department: profile?.department || '' })
       }
 
-saveUserProfile(user.uid, profile).catch(err =>
+      saveUserProfile(user.uid, profile).catch(err =>
         console.warn('Background user profile save failed', err)
       )
 
-persistSessionUser(userData)
+      persistSessionUser(userData)
 
-      navigate(isProfessor ? '/prof' : '/student', { replace: true })
+      const targetRoute = actualIsProfessor ? '/prof' : '/student'
+      navigate(targetRoute, { replace: true })
     } catch (error) {
       console.error('Login error:', error)
       console.error('Error code:', error.code)
@@ -333,6 +439,28 @@ if (showPasswordReset && (error.code === 'auth/invalid-credential' || error.code
     }
 
     const isProfessor = userType === 'professor'
+    
+    if (!isValidEmailDomain(passwordResetEmail)) {
+      setAuthError('Only @umindanao.edu.ph email addresses are allowed. Non-umindanao emails cannot reset password.')
+      return
+    }
+    
+    const emailType = detectEmailType(passwordResetEmail)
+    if (!emailType) {
+      setAuthError('Invalid email format. Professor format: ljorcullo@umindanao.edu.ph. Student format: t.talamillo.141715.tc@umindanao.edu.ph')
+      return
+    }
+    
+    if (isProfessor && emailType !== 'professor') {
+      setAuthError('This email belongs to a student account. Please select "Student" to reset password.')
+      return
+    }
+    
+    if (!isProfessor && emailType !== 'student') {
+      setAuthError('This email belongs to a professor account. Please select "Professor" to reset password.')
+      return
+    }
+    
     if (!isValidEmail(passwordResetEmail, !isProfessor)) {
       setAuthError(`Please enter a valid ${CONFIG.USER_TYPES[isProfessor ? 'PROFESSOR' : 'STUDENT']} email address`)
       return
@@ -402,8 +530,29 @@ if (!isProfessor && !/^\d+$/.test(signUpData.studentId)) {
       return
     }
 
+    if (!isValidEmailDomain(signUpData.email)) {
+      setAuthError('Only @umindanao.edu.ph email addresses are allowed. Non-umindanao emails cannot login or sign up.')
+      return
+    }
+    
+    const emailType = detectEmailType(signUpData.email)
+    if (!emailType) {
+      setAuthError('Invalid email format. Professor format: ljorcullo@umindanao.edu.ph. Student format: t.talamillo.141715.tc@umindanao.edu.ph')
+      return
+    }
+    
+    if (isProfessor && emailType !== 'professor') {
+      setAuthError('This email belongs to a student account. Please select "Student" to sign up.')
+      return
+    }
+    
+    if (!isProfessor && emailType !== 'student') {
+      setAuthError('This email belongs to a professor account. Please select "Professor" to sign up.')
+      return
+    }
+
     if (!isValidEmail(signUpData.email, !isProfessor)) {
-      setAuthError(`Invalid ${isProfessor ? 'professor' : 'student'} email format`)
+      setAuthError(`Invalid ${isProfessor ? 'professor' : 'student'} email format. ${isProfessor ? 'Professors must use format: initials@umindanao.edu.ph' : 'Students must use format: initial.surname.studentid.tc@umindanao.edu.ph'}`)
       return
     }
 
@@ -1252,7 +1401,7 @@ if (error.code === 'auth/email-already-in-use') {
 
                   <p>Access to certain portions of this website ("Password-Protected Areas") may require login and password information. You must have this information in order to access these areas.</p>
 
-                  <p>The use of your personally identifying and non-personal information will be governed by the Privacy Statement found at <a href="https://umindanao.edu.ph" target="_blank" rel="noopener noreferrer" className="terms-link">https://umindanao.edu.ph</a>.</p>
+                  <p>The use of your personally identifying and non-personal information will be governed by the Privacy Statement found at <a href="https://umindanao.edu.ph" target="_blank" rel="noopener noreferrer" className="terms-link">https:
 
                   <p>Your use of this website indicates that you have read and agree to the Privacy Statement.</p>
 

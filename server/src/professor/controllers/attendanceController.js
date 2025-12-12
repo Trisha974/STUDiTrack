@@ -97,8 +97,13 @@ const { createAttendanceNotification } = require('../../shared/utils/notificatio
           status: attendance.status
         }
       )
+      console.log(`✅ Notification created for attendance ID ${attendance.id}, student_id ${attendance.student_id}`)
     } catch (notifError) {
-      console.error('Failed to create attendance notification:', notifError)
+      console.error('❌❌❌ FAILED TO CREATE ATTENDANCE NOTIFICATION ❌❌❌')
+      console.error('❌ Attendance was saved successfully, but notification creation failed!')
+      console.error('❌ Error:', notifError.message)
+      console.error('❌ Student ID:', attendance.student_id, '(type:', typeof attendance.student_id, ')')
+      console.error('❌ Full error:', notifError)
     }
 
     res.status(201).json(attendance)
@@ -128,8 +133,13 @@ const { createAttendanceNotification } = require('../../shared/utils/notificatio
           status: attendance.status
         }
       )
+      console.log(`✅ Notification created for updated attendance ID ${attendance.id}, student_id ${attendance.student_id}`)
     } catch (notifError) {
-      console.error('Failed to create attendance update notification:', notifError)
+      console.error('❌❌❌ FAILED TO CREATE ATTENDANCE UPDATE NOTIFICATION ❌❌❌')
+      console.error('❌ Attendance was updated successfully, but notification creation failed!')
+      console.error('❌ Error:', notifError.message)
+      console.error('❌ Student ID:', attendance.student_id, '(type:', typeof attendance.student_id, ')')
+      console.error('❌ Full error:', notifError)
     }
 
     res.json(attendance)

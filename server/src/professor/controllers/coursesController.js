@@ -95,7 +95,6 @@ const createCourse = async (req, res, next) => {
     if (error.code === 'ER_DUP_ENTRY') {
       return res.status(409).json({ error: 'Course with this code already exists for this professor' })
     }
-    // Log the full error for debugging
     if (error.sql) {
       console.error('SQL Error:', error.sql)
       console.error('SQL Message:', error.message)
@@ -106,7 +105,6 @@ const createCourse = async (req, res, next) => {
 
 const updateCourse = async (req, res, next) => {
   try {
-    // Verify professor owns this course
     if (isProfessor(req.user.role)) {
       const professor = await Professor.findByFirebaseUid(req.user.uid)
       if (!professor) {
@@ -123,7 +121,6 @@ const updateCourse = async (req, res, next) => {
       }
     }
     
-    // Build update object - only include fields that are provided
     const updateData = {}
     if (req.body.code !== undefined) updateData.code = req.body.code
     if (req.body.name !== undefined) updateData.name = req.body.name
@@ -147,7 +144,6 @@ const updateCourse = async (req, res, next) => {
 
 const deleteCourse = async (req, res, next) => {
   try {
-    // Verify professor owns this course
     if (isProfessor(req.user.role)) {
       const professor = await Professor.findByFirebaseUid(req.user.uid)
       if (!professor) {

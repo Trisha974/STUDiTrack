@@ -1,10 +1,9 @@
 ﻿const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 const CSRF_TOKEN = import.meta.env.VITE_CSRF_TOKEN
 
-// Cache for CSRF token
 let csrfTokenCache = null
 let csrfTokenExpiry = 0
-const CSRF_TOKEN_TTL = 50 * 60 * 1000 // 50 minutes (tokens expire after 1 hour)
+const CSRF_TOKEN_TTL = 50 * 60 * 1000
 
 async function getAuthToken() {
   try {
@@ -24,17 +23,14 @@ async function getAuthToken() {
  * Get CSRF token - fetches from server if needed
  */
 async function getCSRFToken() {
-  // Use environment variable token if available (for registration)
   if (CSRF_TOKEN) {
     return CSRF_TOKEN
   }
   
-  // Check cache
   if (csrfTokenCache && Date.now() < csrfTokenExpiry) {
     return csrfTokenCache
   }
   
-  // Try to fetch token from server (requires authentication)
   try {
     const token = await getAuthToken()
     const response = await fetch(`${API_BASE_URL}/csrf-token`, {
@@ -52,7 +48,6 @@ async function getCSRFToken() {
       return csrfTokenCache
     }
   } catch (error) {
-    // If we can't get a token, continue without it (some endpoints don't require it)
     console.warn('Could not fetch CSRF token:', error)
   }
   
@@ -80,7 +75,6 @@ async function apiRequest(endpoint, options = {}) {
       headers['Authorization'] = `Bearer ${token}`
     }
     
-    // Get CSRF token for state-changing operations
     const unsafeMethods = ['POST', 'PUT', 'PATCH', 'DELETE']
     if (unsafeMethods.includes(options.method || 'GET')) {
       const csrfToken = await getCSRFToken()
@@ -111,6 +105,16 @@ async function apiRequest(endpoint, options = {}) {
       } else if (response.status === 403) {
         throw new Error(`Access denied (403): ${errorMessage}`)
       } else if (response.status === 401) {
+        const { signOutUser } = await import('../../firebase')
+        try {
+          await signOutUser()
+        } catch (signOutError) {
+          console.error('Failed to sign out:', signOutError)
+        }
+        sessionStorage.removeItem('currentUser')
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login'
+        }
         throw new Error(`Authentication failed (401): ${errorMessage}`)
       } else if (response.status === 400) {
         throw new Error(`Bad request (400): ${errorMessage}`)

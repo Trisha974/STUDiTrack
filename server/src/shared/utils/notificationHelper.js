@@ -6,7 +6,20 @@ const Course = require('../../professor/models/Course')
 
 async function createGradeNotification(studentId, courseId, gradeId, gradeData) {
   try {
-    console.log(`📬 Creating grade notification for student_id: ${studentId}, course_id: ${courseId}, grade_id: ${gradeId}`)
+    const studentIdNum = typeof studentId === 'number' ? studentId : parseInt(studentId, 10)
+    if (isNaN(studentIdNum) || studentIdNum <= 0) {
+      console.error(`❌ Invalid student_id for notification: ${studentId} (type: ${typeof studentId})`)
+      throw new Error(`Invalid student_id: ${studentId}. Must be a positive number (MySQL ID).`)
+    }
+
+    console.log(`📬 Creating grade notification for student_id: ${studentIdNum} (type: ${typeof studentIdNum}), course_id: ${courseId}, grade_id: ${gradeId}`)
+
+    const student = await Student.findById(studentIdNum)
+    if (!student) {
+      console.error(`❌ Student not found for MySQL ID: ${studentIdNum}`)
+      throw new Error(`Student not found for ID: ${studentIdNum}`)
+    }
+    console.log(`✅ Student verified: ${student.name} (MySQL ID: ${student.id}, Student ID: ${student.student_id})`)
 
     const course = await Course.findById(courseId)
     const courseName = course ? (course.name || course.code) : 'Unknown Course'
@@ -17,7 +30,7 @@ async function createGradeNotification(studentId, courseId, gradeId, gradeData) 
     const message = `Your ${readableType.toLowerCase()} "${gradeData.assessment_title}" score is ${gradeData.score}/${gradeData.max_points}.`
 
     const notification = await Notification.create({
-      user_id: studentId,
+      user_id: studentIdNum,
       user_type: 'Student',
       type: 'grade',
       title,
@@ -30,7 +43,8 @@ async function createGradeNotification(studentId, courseId, gradeId, gradeData) 
       id: notification.id,
       user_id: notification.user_id,
       user_type: notification.user_type,
-      title: notification.title
+      title: notification.title,
+      student_name: student.name
     })
 
     return notification
@@ -41,6 +55,7 @@ async function createGradeNotification(studentId, courseId, gradeId, gradeData) 
       sqlMessage: error.sqlMessage,
       sqlCode: error.code,
       studentId,
+      studentIdType: typeof studentId,
       courseId,
       gradeId
     })
@@ -50,7 +65,20 @@ async function createGradeNotification(studentId, courseId, gradeId, gradeData) 
 
 async function createAttendanceNotification(studentId, courseId, attendanceId, attendanceData) {
   try {
-    console.log(`📬 Creating attendance notification for student_id: ${studentId}, course_id: ${courseId}, attendance_id: ${attendanceId}`)
+    const studentIdNum = typeof studentId === 'number' ? studentId : parseInt(studentId, 10)
+    if (isNaN(studentIdNum) || studentIdNum <= 0) {
+      console.error(`❌ Invalid student_id for notification: ${studentId} (type: ${typeof studentId})`)
+      throw new Error(`Invalid student_id: ${studentId}. Must be a positive number (MySQL ID).`)
+    }
+
+    console.log(`📬 Creating attendance notification for student_id: ${studentIdNum} (type: ${typeof studentIdNum}), course_id: ${courseId}, attendance_id: ${attendanceId}`)
+
+    const student = await Student.findById(studentIdNum)
+    if (!student) {
+      console.error(`❌ Student not found for MySQL ID: ${studentIdNum}`)
+      throw new Error(`Student not found for ID: ${studentIdNum}`)
+    }
+    console.log(`✅ Student verified: ${student.name} (MySQL ID: ${student.id}, Student ID: ${student.student_id})`)
 
     const course = await Course.findById(courseId)
     const courseName = course ? (course.name || course.code) : 'Unknown Course'
@@ -70,7 +98,7 @@ async function createAttendanceNotification(studentId, courseId, attendanceId, a
     const message = `You were marked ${statusLabel} on ${dateLabel} for ${courseName}.`
 
     const notification = await Notification.create({
-      user_id: studentId,
+      user_id: studentIdNum,
       user_type: 'Student',
       type: 'attendance',
       title,
@@ -83,7 +111,8 @@ async function createAttendanceNotification(studentId, courseId, attendanceId, a
       id: notification.id,
       user_id: notification.user_id,
       user_type: notification.user_type,
-      title: notification.title
+      title: notification.title,
+      student_name: student.name
     })
 
     return notification
@@ -94,6 +123,7 @@ async function createAttendanceNotification(studentId, courseId, attendanceId, a
       sqlMessage: error.sqlMessage,
       sqlCode: error.code,
       studentId,
+      studentIdType: typeof studentId,
       courseId,
       attendanceId
     })

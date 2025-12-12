@@ -2,7 +2,6 @@
 const cors = require('cors')
 require('dotenv').config()
 
-// Security middleware
 const {
   generalLimiter,
   authLimiter,
@@ -27,14 +26,14 @@ const NODE_ENV = process.env.NODE_ENV || 'development'
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5177'
 const allowedOrigins = [
   FRONTEND_URL,
-  'http://localhost:5173', // Common Vite default
-  'http://localhost:5174', // Alternative Vite port
-  'http://localhost:5175', // Alternative Vite port
-  'http://localhost:5176', // Alternative Vite port
-  'http://localhost:5177', // Alternative port
-  'http://localhost:5178', // Alternative port
-  'http://localhost:3000', // Common React default
-  'http://127.0.0.1:5173', // IPv4 localhost
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5175',
+  'http://localhost:5176',
+  'http://localhost:5177',
+  'http://localhost:5178',
+  'http://localhost:3000',
+  'http://127.0.0.1:5173',
   'http://127.0.0.1:5174',
   'http://127.0.0.1:5175',
   'http://127.0.0.1:5176',
@@ -42,63 +41,45 @@ const allowedOrigins = [
   'http://127.0.0.1:5178',
 ]
 
-// Add production frontend URL if set
-if (process.env.VERCEL_URL) {
-  allowedOrigins.push(`https://${process.env.VERCEL_URL}`)
-}
 if (process.env.PRODUCTION_FRONTEND_URL) {
   allowedOrigins.push(process.env.PRODUCTION_FRONTEND_URL)
 }
 
-// Trust proxy for accurate IP addresses (important for rate limiting)
 app.set('trust proxy', 1)
 
-// ============================================
-// SECURITY MIDDLEWARE (Applied in order)
-// ============================================
 
-// 1. Security headers (Helmet)
 app.use(securityHeaders)
 
-// 2. Method validation
 app.use(methodValidator)
 
-// 3. Request size validation
 app.use(requestSizeValidator)
 
-// 4. IP-based security checks
 app.use(ipSecurity)
 
-// 5. Security logging
 app.use(securityLogger)
 
-// 6. CORS configuration (more restrictive in production)
 app.use(cors({
   origin: (origin, callback) => {
-    // In production, reject requests with no origin (except for same-origin requests)
     if (!origin) {
       if (NODE_ENV === 'production') {
         console.warn('🚨 CORS: Blocked request with no origin in production')
         return callback(new Error('CORS: Origin required'))
       }
-      // Allow in development for tools like Postman
       console.log('✅ CORS: Allowing request with no origin (development)')
       return callback(null, true)
     }
     
     if (allowedOrigins.includes(origin)) {
       if (NODE_ENV === 'development') {
-        console.log(`✅ CORS: Allowing origin: ${origin}`)
+      console.log(`✅ CORS: Allowing origin: ${origin}`)
       }
       callback(null, true)
     } else {
-      // In production, be strict
       if (NODE_ENV === 'production') {
         console.warn(`🚨 CORS blocked origin: ${origin}`)
         return callback(new Error(`Not allowed by CORS. Origin: ${origin}`))
       }
       
-      // In development, allow localhost variations
       if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
         console.log(`✅ CORS: Allowing localhost origin in development: ${origin}`)
         callback(null, true)
@@ -112,26 +93,20 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token'],
   exposedHeaders: ['x-csrf-token'],
-  maxAge: 86400 // 24 hours
+  maxAge: 86400
 }))
 
-// 7. Body parsing with limits
 app.use(express.json({ limit: '50mb' }))
 app.use(express.urlencoded({ extended: true, limit: '50mb' }))
 
-// 8. HTTP Parameter Pollution protection
 app.use(hppProtection)
 
-// 9. Input sanitization (protects against XSS, SQL injection)
 app.use(sanitizeInput)
 
-// 10. Speed limiting (slow down after burst)
 app.use(speedLimiter)
 
-// 11. General rate limiting
 app.use('/api', generalLimiter)
 
-// 12. Write operation rate limiting
 app.use('/api', (req, res, next) => {
   if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
     return writeLimiter(req, res, next)
@@ -139,7 +114,6 @@ app.use('/api', (req, res, next) => {
   next()
 })
 
-// 13. Authentication endpoint rate limiting
 app.use('/api/students', (req, res, next) => {
   if (req.path === '/api/students' && req.method === 'POST') {
     return registrationLimiter(req, res, next)
@@ -154,7 +128,6 @@ app.use('/api/professors', (req, res, next) => {
   next()
 })
 
-// 14. CSRF protection
 app.use(csrfProtection)
 
 app.use('/api/students', require('./student/routes/students'))
@@ -165,11 +138,10 @@ app.use('/api/grades', require('./professor/routes/grades'))
 app.use('/api/attendance', require('./professor/routes/attendance'))
 app.use('/api/notifications', require('./shared/routes/notifications'))
 app.use('/api/reports', require('./professor/routes/reports'))
+app.use('/api/auth', require('./shared/routes/auth'))
 
-// CSRF token endpoint (requires authentication)
 app.get('/api/csrf-token', require('./shared/middleware/auth').verifyTokenOnly, getCSRFToken)
 
-// Health check endpoint (no rate limiting)
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'ok', 

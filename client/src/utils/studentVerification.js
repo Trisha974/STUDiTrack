@@ -21,17 +21,13 @@ export async function verifyStudentIdEmailPair(numericalStudentId, email) {
   }
 
   try {
-    // Step 1: Find student by numerical ID (primary lookup method for professors)
     const studentById = await getStudentByNumericalId(numericalStudentId)
     
     if (!studentById) {
-      // Student not found by ID - might not be registered yet
       return { uid: null, verified: false, student: null, error: 'Student not found by ID' }
     }
 
-    // Step 2: Verify the email matches (critical security check)
     if (studentById.email && studentById.email.toLowerCase() !== email.toLowerCase()) {
-      // Email mismatch - this indicates a potential data integrity issue
       console.warn(`Email mismatch for student ID ${numericalStudentId}: expected ${email}, found ${studentById.email}`)
       return { 
         uid: null, 
@@ -41,9 +37,8 @@ export async function verifyStudentIdEmailPair(numericalStudentId, email) {
       }
     }
 
-    // Step 3: Return the Firebase Auth UID (firebase_uid field from MySQL)
     return {
-      uid: studentById.firebase_uid || studentById.firebaseUid || null, // Firebase Auth UID from MySQL
+      uid: studentById.firebase_uid || studentById.firebaseUid || null,
       verified: true,
       student: studentById,
       error: null
@@ -68,14 +63,12 @@ export async function verifyEmailStudentIdPair(email, numericalStudentId) {
   }
 
   try {
-    // Step 1: Find student by email (primary lookup for authentication)
     const studentByEmail = await getStudentByEmail(email)
     
     if (!studentByEmail) {
       return { uid: null, verified: false, student: null, error: 'Student not found by email' }
     }
 
-    // Step 2: Verify the numerical student ID matches
     if (studentByEmail.studentId && studentByEmail.studentId !== numericalStudentId) {
       console.warn(`Student ID mismatch for email ${email}: expected ${numericalStudentId}, found ${studentByEmail.studentId}`)
       return { 
@@ -87,7 +80,7 @@ export async function verifyEmailStudentIdPair(email, numericalStudentId) {
     }
 
     return {
-      uid: studentByEmail.firebase_uid || studentByEmail.firebaseUid || null, // Firebase Auth UID from MySQL
+      uid: studentByEmail.firebase_uid || studentByEmail.firebaseUid || null,
       verified: true,
       student: studentByEmail,
       error: null
@@ -110,14 +103,11 @@ export async function getStudentUidForSync(numericalStudentId, email = null) {
   if (!numericalStudentId) return null
 
   try {
-    // Primary method: Lookup by numerical ID
     const student = await getStudentByNumericalId(numericalStudentId)
     if (student) {
-      // If email provided, verify it matches
       if (email && student.email && student.email.toLowerCase() !== email.toLowerCase()) {
         console.warn(`Email mismatch for student ${numericalStudentId}, but proceeding with ID lookup`)
       }
-      // Return Firebase Auth UID (firebase_uid field from MySQL)
       const firebaseUid = student.firebase_uid || student.firebaseUid
       if (firebaseUid && typeof firebaseUid === 'string' && !firebaseUid.startsWith('temp_')) {
         return firebaseUid
@@ -126,15 +116,12 @@ export async function getStudentUidForSync(numericalStudentId, email = null) {
       return null
     }
 
-    // Fallback: Try email lookup if provided
     if (email) {
       const studentByEmail = await getStudentByEmail(email)
       if (studentByEmail) {
-        // Verify the ID matches if studentId field exists
         if (studentByEmail.studentId && studentByEmail.studentId !== numericalStudentId) {
           console.warn(`Student ID mismatch: expected ${numericalStudentId}, found ${studentByEmail.studentId}`)
         }
-        // Return Firebase Auth UID (firebase_uid field from MySQL)
         const firebaseUid = studentByEmail.firebase_uid || studentByEmail.firebaseUid
         if (firebaseUid && typeof firebaseUid === 'string' && !firebaseUid.startsWith('temp_')) {
           return firebaseUid

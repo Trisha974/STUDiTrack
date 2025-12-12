@@ -73,6 +73,13 @@ async function verifyTokenOnly(req, res, next) {
       uid: decodedToken.uid,
       email: decodedToken.email
     }
+    
+    if (req.path && req.path.includes('notifications')) {
+      console.log(`\n🔐 [AUTH] Token verified for notifications request:`)
+      console.log(`🔐 [AUTH] Firebase UID: ${decodedToken.uid}`)
+      console.log(`🔐 [AUTH] Email: ${decodedToken.email}`)
+      console.log(`🔐 [AUTH] Path: ${req.path}`)
+    }
 
     next()
   } catch (error) {
@@ -123,6 +130,27 @@ const role = await getUserRoleFromDB(decodedToken.uid)
   }
 }
 
+function detectEmailType(email) {
+  if (!email) return null
+  const trimmed = email.trim().toLowerCase()
+  
+  if (!trimmed.endsWith('@umindanao.edu.ph')) {
+    return null
+  }
+  
+  const STUDENT_EMAIL_REGEX = /^[a-z]+(\.[a-z]+)+\.\d+\.tc@umindanao\.edu\.ph$/
+  const PROFESSOR_EMAIL_REGEX = /^[a-z0-9]+@umindanao\.edu\.ph$/
+  
+  if (STUDENT_EMAIL_REGEX.test(trimmed)) {
+    return 'student'
+  }
+  if (PROFESSOR_EMAIL_REGEX.test(trimmed)) {
+    return 'professor'
+  }
+  
+  return null
+}
+
 function requireRole(...roles) {
 
   const invalidRoles = roles.filter(r => !VALID_ROLES.includes(r))
@@ -141,6 +169,18 @@ function requireRole(...roles) {
 
     if (!roles.includes(req.user.role)) {
       return res.status(403).json({ error: 'Insufficient permissions. Required role: ' + roles.join(' or ') })
+    }
+
+    if (req.user.email) {
+      const emailType = detectEmailType(req.user.email)
+      if (roles.includes('Professor') && emailType !== 'professor') {
+        console.error('🚫 CRITICAL: Student email detected in professor route - BLOCKING')
+        return res.status(403).json({ error: 'Access denied. Student email cannot access professor routes.' })
+      }
+      if (roles.includes('Student') && emailType !== 'student') {
+        console.error('🚫 CRITICAL: Professor email detected in student route - BLOCKING')
+        return res.status(403).json({ error: 'Access denied. Professor email cannot access student routes.' })
+      }
     }
 
     next()

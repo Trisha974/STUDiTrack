@@ -100,7 +100,6 @@ const createProfessor = async (req, res, next) => {
 
     if (existingProfessor) {
       if (!existingProfessor.firebase_uid || existingProfessor.firebase_uid !== firebaseUid) {
-        // Update existing professor with Firebase UID
         const updated = await Professor.update(existingProfessor.id, {
           firebase_uid: firebaseUid,
           name: name || existingProfessor.name,
@@ -110,12 +109,10 @@ const createProfessor = async (req, res, next) => {
         })
         return res.status(200).json(updated)
       } else {
-        // Professor already exists with this Firebase UID
         return res.status(200).json(existingProfessor)
       }
     }
 
-    // Create new professor
     console.log('📝 Creating professor with data:', {
       firebase_uid: firebaseUid,
       name: name,
@@ -154,7 +151,6 @@ const createProfessor = async (req, res, next) => {
 
 const updateProfessor = async (req, res, next) => {
   try {
-    // Validate professor ID
     const professorId = parseInt(req.params.id)
     if (isNaN(professorId)) {
       return res.status(400).json({ error: 'Invalid professor ID' })
@@ -169,7 +165,6 @@ const updateProfessor = async (req, res, next) => {
       photoUrlLength: (req.body.photoUrl || req.body.photo_url)?.length
     })
 
-    // Check if professor exists first
     const existingProfessor = await Professor.findById(professorId)
     if (!existingProfessor) {
       return res.status(404).json({ error: 'Professor not found' })
@@ -205,7 +200,6 @@ const updateProfessor = async (req, res, next) => {
       }
     }
 
-    // Ensure at least one field is being updated
     if (Object.keys(updateData).length === 0) {
       return res.status(400).json({ error: 'No fields to update' })
     }

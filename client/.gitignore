@@ -64,6 +64,23 @@ node_modules/
 
 # dotenv environment variables file
 .env
+.env.local
+.env.production
+.env.development
 
 # dataconnect generated files
 .dataconnect
+
+# Build outputs
+dist/
+
+# Backup and temp files
+*.backup
+*.temp
+*.bak
+*.old
+
+# PowerShell scripts (except in scripts folder)
+*.ps1
+!scripts/*.ps1
+!server/scripts/*.ps1

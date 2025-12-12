@@ -5,11 +5,11 @@ const crypto = require('crypto')
  * Protects against Cross-Site Request Forgery attacks
  */
 
-// Store CSRF tokens in memory (in production, use Redis or similar)
-const csrfTokens = new Map()
-const TOKEN_EXPIRY = 60 * 60 * 1000 // 1 hour
 
-// Clean up expired tokens periodically
+const csrfTokens = new Map()
+const TOKEN_EXPIRY = 60 * 60 * 1000
+
+
 setInterval(() => {
   const now = Date.now()
   for (const [token, expiry] of csrfTokens.entries()) {
@@ -17,7 +17,7 @@ setInterval(() => {
       csrfTokens.delete(token)
     }
   }
-}, 5 * 60 * 1000) // Clean up every 5 minutes
+}, 5 * 60 * 1000)
 
 /**
  * Generate a CSRF token
@@ -43,7 +43,7 @@ function verifyCSRFToken(token) {
     return false
   }
   
-  // Token is valid, but don't delete it yet (allow reuse within expiry)
+
   return true
 }
 
@@ -51,13 +51,13 @@ function verifyCSRFToken(token) {
  * CSRF protection middleware
  */
 function csrfProtection(req, res, next) {
-  // Skip CSRF for safe methods
+
   const safeMethods = ['GET', 'HEAD', 'OPTIONS']
   if (safeMethods.includes(req.method)) {
     return next()
   }
   
-  // Public endpoints that need to allow registration
+
   const PUBLIC_ENDPOINTS = [
     '/api/students',
     '/api/professors'
@@ -67,9 +67,9 @@ function csrfProtection(req, res, next) {
     req.path === endpoint || req.path.startsWith(endpoint + '/')
   )
   
-  // For registration endpoints, use a simpler check
+
   if (isPublicEndpoint && req.method === 'POST') {
-    // Use environment variable CSRF secret for registration
+
     const CSRF_SECRET = process.env.CSRF_SECRET
     if (CSRF_SECRET) {
       const token = req.headers['x-csrf-token']
@@ -86,7 +86,7 @@ function csrfProtection(req, res, next) {
     return next()
   }
   
-  // For authenticated endpoints, require token verification
+
   const token = req.headers['x-csrf-token'] || req.headers['x-csrf-token']
   
   if (!token) {
@@ -99,13 +99,13 @@ function csrfProtection(req, res, next) {
     return res.status(403).json({ error: 'CSRF token required' })
   }
   
-  // Check if it's the static secret (for backward compatibility)
+
   const CSRF_SECRET = process.env.CSRF_SECRET
   if (CSRF_SECRET && token === CSRF_SECRET) {
     return next()
   }
   
-  // Verify dynamic token
+
   if (!verifyCSRFToken(token)) {
     console.warn('🚨 CSRF token validation failed:', {
       ip: req.ip,
@@ -123,7 +123,7 @@ function csrfProtection(req, res, next) {
  * Endpoint to get CSRF token (for authenticated users)
  */
 function getCSRFToken(req, res) {
-  // Only allow authenticated users to get CSRF tokens
+
   if (!req.user || !req.user.uid) {
     return res.status(401).json({ error: 'Authentication required' })
   }

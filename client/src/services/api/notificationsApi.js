@@ -10,6 +10,9 @@ export async function getNotifications(options = {}) {
   if (options.limit) queryParams.append('limit', options.limit)
   if (options.offset) queryParams.append('offset', options.offset)
   if (options.unreadOnly) queryParams.append('unreadOnly', 'true')
+  if (options.studentId) {
+    queryParams.append('student_id', options.studentId)
+  }
 
   const endpoint = queryParams.toString()
     ? `/notifications?${queryParams.toString()}`
@@ -29,7 +32,6 @@ export async function getNotifications(options = {}) {
   try {
     const result = await apiClient.get(endpoint)
     
-    // Enhanced logging for debugging - log the FULL response structure
     console.log('📬 Notifications API response (raw):', {
       type: typeof result,
       isArray: Array.isArray(result),
@@ -38,22 +40,68 @@ export async function getNotifications(options = {}) {
       dataType: result ? typeof result : 'null',
       isObject: result && typeof result === 'object' && !Array.isArray(result),
       keys: result && typeof result === 'object' && !Array.isArray(result) ? Object.keys(result) : null,
-      fullResponse: result, // Log the full response to see structure
-      stringified: JSON.stringify(result).substring(0, 500) // First 500 chars of stringified response
+      fullResponse: result,
+      stringified: JSON.stringify(result).substring(0, 1000),
+      firstItem: Array.isArray(result) && result.length > 0 ? result[0] : null,
+      hasDebug: result && typeof result === 'object' && !Array.isArray(result) && result._debug ? true : false,
+      debugInfo: result && typeof result === 'object' && !Array.isArray(result) && result._debug ? result._debug : null
     })
     
-    // Ensure we return an array
+    if (result && typeof result === 'object' && !Array.isArray(result) && result._debug) {
+      console.error('❌❌❌ NOTIFICATIONS DEBUG INFO RECEIVED ❌❌❌')
+      console.error('❌ Backend debug info:', result._debug)
+      console.error('❌ Backend resolved student MySQL ID:', result._debug.studentMySQLId)
+      console.error('❌ Frontend expects student MySQL ID: 25')
+      if (result._debug.studentMySQLId !== 25) {
+        console.error('❌❌❌ MISMATCH DETECTED! ❌❌❌')
+        console.error('❌ Backend found student ID:', result._debug.studentMySQLId)
+        console.error('❌ Frontend expects student ID: 25')
+        console.error('❌ This is why notifications are not showing!')
+        console.error('❌ The backend is resolving a different student than the frontend expects.')
+        console.error('❌ Check backend server console logs to see which Firebase UID was used.')
+      }
+      return result.notifications || []
+    }
+    
+    if (result && typeof result === 'object' && !Array.isArray(result) && result._debug) {
+      console.warn('⚠️ [NOTIFICATIONS] Backend returned debug info:', result._debug)
+      console.warn('⚠️ [NOTIFICATIONS] This means no notifications were found for the resolved student')
+      console.warn('⚠️ [NOTIFICATIONS] Student MySQL ID used by backend:', result._debug.studentMySQLId)
+      console.warn('⚠️ [NOTIFICATIONS] Frontend thinks student MySQL ID is: 25')
+      if (result._debug.studentMySQLId !== 25) {
+        console.error('❌ [NOTIFICATIONS] MISMATCH! Backend resolved different student ID!')
+        console.error('❌ [NOTIFICATIONS] Backend student ID:', result._debug.studentMySQLId)
+        console.error('❌ [NOTIFICATIONS] Frontend student ID: 25')
+        console.error('❌ [NOTIFICATIONS] This is why notifications are not showing!')
+      }
+      return result.notifications || []
+    }
+    
+    if (Array.isArray(result)) {
+      console.log(`✅ Notifications API returned direct array with ${result.length} items`)
+      if (result.length > 0) {
+        console.log(`✅ First notification:`, {
+          id: result[0].id,
+          title: result[0].title,
+          user_id: result[0].user_id,
+          user_type: result[0].user_type
+        })
+      } else {
+        console.warn('⚠️ [NOTIFICATIONS] Backend returned empty array')
+        console.warn('⚠️ [NOTIFICATIONS] Check backend server console logs to see which student ID was resolved')
+      }
+      return result
+    }
+    
     if (Array.isArray(result)) {
       console.log('✅ Response is direct array, returning', result.length, 'notifications')
       return result
     }
     
-    // Handle wrapped responses - check ALL possible object properties
     if (result && typeof result === 'object' && !Array.isArray(result)) {
       const keys = Object.keys(result)
       console.log('🔍 Response is object with keys:', keys)
       
-      // Try common array properties
       for (const key of ['data', 'notifications', 'items', 'results', 'list', 'array']) {
         if (Array.isArray(result[key])) {
           console.log(`✅ Found notifications in result.${key}, returning`, result[key].length, 'notifications')
@@ -61,7 +109,6 @@ export async function getNotifications(options = {}) {
         }
       }
       
-      // Check if any property is an array
       for (const key of keys) {
         if (Array.isArray(result[key])) {
           console.log(`✅ Found array in result.${key}, returning`, result[key].length, 'items')
@@ -69,7 +116,6 @@ export async function getNotifications(options = {}) {
         }
       }
       
-      // If object has numeric keys (like {0: {...}, 1: {...}}), convert to array
       if (keys.every(k => !isNaN(parseInt(k)))) {
         const arrayFromObject = Object.values(result)
         if (arrayFromObject.length > 0) {
@@ -78,7 +124,6 @@ export async function getNotifications(options = {}) {
         }
       }
       
-      // Last resort: if object has only one property and it's an array
       if (keys.length === 1 && Array.isArray(result[keys[0]])) {
         console.log(`✅ Found single array property ${keys[0]}, returning`, result[keys[0]].length, 'items')
         return result[keys[0]]
@@ -90,13 +135,11 @@ export async function getNotifications(options = {}) {
       console.error('❌ Full response:', JSON.stringify(result, null, 2))
     }
     
-    // If we get here, something unexpected happened
     console.error('❌ Unexpected notifications response format!')
     console.error('❌ Response type:', typeof result)
     console.error('❌ Response value:', result)
     console.error('❌ Full response stringified:', JSON.stringify(result, null, 2).substring(0, 1000))
     
-    // Last resort: if result is an error object, check for error message
     if (result && typeof result === 'object' && result.error) {
       console.error('❌ API returned error:', result.error)
       throw new Error(result.error)
@@ -113,7 +156,6 @@ export async function getNotifications(options = {}) {
       stack: error.stack
     })
     
-    // Provide helpful error message
     if (error.message.includes('Cannot connect to server')) {
       console.error('💡 Troubleshooting tips:')
       console.error('   1. Check if backend server is running: cd server && npm start')
@@ -133,7 +175,6 @@ export async function getNotifications(options = {}) {
 export async function getUnreadCount() {
   const response = await apiClient.get('/notifications/unread/count')
   
-  // Handle different response formats
   if (typeof response === 'number') {
     return response
   }
@@ -177,13 +218,12 @@ export async function deleteNotification(notificationId) {
  */
 export function subscribeToNotifications(callback, options = {}) {
   let intervalId = null
-  let lastNotifications = [] // Keep last successful notifications
+  let lastNotifications = []
 
   const poll = async () => {
     try {
       const notifications = await getNotifications(options)
       
-      // Only log detailed info in development or when notifications exist
       if (process.env.NODE_ENV === 'development') {
         console.log('📬 Polling notifications - API response:', {
           type: typeof notifications,
@@ -192,20 +232,16 @@ export function subscribeToNotifications(callback, options = {}) {
         })
       }
       
-      // Ensure notifications is an array
       if (Array.isArray(notifications)) {
         lastNotifications = notifications
-        // Only log when notifications exist to reduce console noise
         if (notifications.length > 0 && process.env.NODE_ENV === 'development') {
           console.log(`✅ Setting ${notifications.length} notifications from API`)
         }
         callback(notifications)
       } else if (notifications && typeof notifications === 'object') {
-        // Handle wrapped response
         const notificationsArray = notifications.data || notifications.notifications || []
         if (Array.isArray(notificationsArray)) {
           lastNotifications = notificationsArray
-          // Only log when notifications exist to reduce console noise
           if (notificationsArray.length > 0 && process.env.NODE_ENV === 'development') {
             console.log(`✅ Setting ${notificationsArray.length} notifications from wrapped response`)
           }
@@ -218,7 +254,6 @@ export function subscribeToNotifications(callback, options = {}) {
         }
       } else {
         console.warn('⚠️ Notifications API returned non-array:', notifications)
-        // Don't overwrite with empty array, keep last successful data
         if (lastNotifications.length > 0) {
           callback(lastNotifications)
         }
@@ -233,27 +268,22 @@ export function subscribeToNotifications(callback, options = {}) {
         url: error.config?.url
       })
       
-      // Don't overwrite with empty array on error, keep last successful data
-      // Only callback if we have previous data
       if (lastNotifications.length > 0) {
         console.log(`⚠️ Using cached notifications (${lastNotifications.length} items) due to error`)
         callback(lastNotifications)
       } else {
-        // If no previous data and error is 404 (student not found), callback empty array
-        // Otherwise, keep trying silently
         if (error.response?.status === 404) {
           console.warn('⚠️ Student profile not found (404) - cannot load notifications')
           callback([])
         } else {
           console.warn('⚠️ Notification polling error, but no cached data available. Will retry on next poll.')
-          // Don't callback empty array - let it retry
         }
       }
     }
   }
 
-  poll() // Initial fetch
-  intervalId = setInterval(poll, 5000) // Poll every 5 seconds
+  poll()
+  intervalId = setInterval(poll, 5000)
 
   return () => {
     if (intervalId) clearInterval(intervalId)
