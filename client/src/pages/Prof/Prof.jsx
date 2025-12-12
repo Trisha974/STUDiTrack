@@ -181,7 +181,6 @@ function Prof() {
 
         if (userData.type !== 'Professor') {
           console.error('🚫 CRITICAL: Non-professor user attempting to access professor dashboard')
-          const { signOutUser } = await import('../../firebase')
           await signOutUser()
           sessionStorage.removeItem('currentUser')
           navigate('/login', { replace: true })
@@ -200,7 +199,6 @@ function Prof() {
           const emailType = detectEmailType(authUser.email)
           if (emailType !== 'professor') {
             console.error('🚫 CRITICAL: Student email detected in professor dashboard - IMMEDIATE BLOCK')
-            const { signOutUser } = await import('../../firebase')
             await signOutUser()
             sessionStorage.removeItem('currentUser')
             navigate('/login', { replace: true })
@@ -208,7 +206,6 @@ function Prof() {
           }
         } else {
           console.error('🚫 CRITICAL: No email found for authenticated user')
-          const { signOutUser } = await import('../../firebase')
           await signOutUser()
           sessionStorage.removeItem('currentUser')
           navigate('/login', { replace: true })
@@ -219,7 +216,6 @@ function Prof() {
           const emailType = detectEmailType(userData.email)
           if (emailType !== 'professor') {
             console.error('🚫 CRITICAL: Student email in user data - IMMEDIATE BLOCK')
-            const { signOutUser } = await import('../../firebase')
             await signOutUser()
             sessionStorage.removeItem('currentUser')
             navigate('/login', { replace: true })
@@ -228,7 +224,6 @@ function Prof() {
         }
       } catch (error) {
         console.error('Error checking access:', error)
-        const { signOutUser } = await import('../../firebase')
         await signOutUser()
         sessionStorage.removeItem('currentUser')
         navigate('/login', { replace: true })
