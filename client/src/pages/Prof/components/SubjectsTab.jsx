@@ -158,7 +158,7 @@ const SubjectsTab = ({
           </div>
         </div>
         {/* Action Buttons */}
-        <div className="flex gap-2.5 sm:gap-3 w-full sm:w-auto">
+        <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
           <button
             onClick={onRefresh}
             className={`group relative overflow-hidden px-4 py-3.5 sm:px-4 sm:py-3 rounded-xl sm:rounded-2xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center space-x-2 flex-1 sm:flex-initial min-h-[50px] sm:min-h-0 touch-manipulation ${
@@ -251,7 +251,7 @@ const SubjectsTab = ({
       {subjectsView === 'active' && (
         <>
           {/* Filter Buttons */}
-          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 mb-6">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-6">
             <button
               onClick={() => {
                 setSubjectFilterTerm('all')
@@ -450,7 +450,7 @@ const SubjectsTab = ({
                     </div>
                     
                     <div className="flex items-center justify-between">
-                      <div className={`flex items-center gap-1.5 ${
+                      <div className={`flex items-center gap-2 ${
                         isDarkMode ? 'text-slate-400' : 'text-slate-600'
                       }`}>
                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
