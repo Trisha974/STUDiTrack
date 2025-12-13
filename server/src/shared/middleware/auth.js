@@ -9,18 +9,26 @@ let firebaseAdminInitialized = false
 if (!admin.apps.length) {
   const serviceAccountPath = path.join(__dirname, '../../../serviceAccountKey.json')
   
+  console.log(`🔍 Checking for Firebase serviceAccountKey.json at: ${serviceAccountPath}`)
+  
   if (fs.existsSync(serviceAccountPath)) {
     try {
+      console.log('📄 Found serviceAccountKey.json, loading...')
       const serviceAccount = require(serviceAccountPath)
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount)
       })
       firebaseAdminInitialized = true
       console.log('✅ Firebase Admin SDK initialized successfully from serviceAccountKey.json')
+      console.log(`   Project ID: ${serviceAccount.project_id}`)
     } catch (error) {
       console.warn('⚠️ Firebase Admin SDK initialization failed from JSON file:', error.message)
+      console.warn(`   File path: ${serviceAccountPath}`)
       console.warn('⚠️ Falling back to environment variables...')
     }
+  } else {
+    console.warn(`⚠️ serviceAccountKey.json not found at: ${serviceAccountPath}`)
+    console.warn('⚠️ Falling back to environment variables...')
   }
   
   if (!firebaseAdminInitialized) {
@@ -31,6 +39,7 @@ if (!admin.apps.length) {
 
     if (hasFirebaseConfig) {
       try {
+        console.log('📄 Using environment variables for Firebase...')
         admin.initializeApp({
           credential: admin.credential.cert({
             projectId: process.env.FIREBASE_PROJECT_ID,
@@ -40,6 +49,7 @@ if (!admin.apps.length) {
         })
         firebaseAdminInitialized = true
         console.log('✅ Firebase Admin SDK initialized successfully from environment variables')
+        console.log(`   Project ID: ${process.env.FIREBASE_PROJECT_ID}`)
       } catch (error) {
         console.warn('⚠️ Firebase Admin SDK initialization failed:', error.message)
         console.warn('⚠️ Token verification will not work until Firebase Admin SDK is configured')
@@ -54,6 +64,7 @@ if (!admin.apps.length) {
   }
 } else {
   firebaseAdminInitialized = true
+  console.log('✅ Firebase Admin SDK already initialized')
 }
 
 const VALID_ROLES = ['Professor', 'Student']

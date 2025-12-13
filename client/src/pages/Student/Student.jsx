@@ -198,7 +198,7 @@ function Student() {
     }
 
     refreshNotifications()
-    
+
     const recalculateData = () => {
       const currentEnrollments = enrollmentsRef.current
       const currentCourses = coursesRef.current

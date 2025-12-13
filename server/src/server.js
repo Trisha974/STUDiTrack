@@ -1,6 +1,9 @@
 ﻿const express = require('express')
 const cors = require('cors')
-require('dotenv').config()
+const path = require('path')
+
+const envPath = path.join(__dirname, '../.env')
+require('dotenv').config({ path: envPath })
 
 const {
   generalLimiter,
@@ -26,7 +29,8 @@ const NODE_ENV = process.env.NODE_ENV || 'development'
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5177'
 const allowedOrigins = [
   FRONTEND_URL,
-  'https://studentitrack.vercel.app',
+  'https://studentitrack.org',
+  'http://studentitrack.org',
   'http://localhost:5173',
   'http://localhost:5174',
   'http://localhost:5175',
