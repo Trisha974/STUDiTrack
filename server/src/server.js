@@ -45,10 +45,6 @@ if (process.env.PRODUCTION_FRONTEND_URL) {
   allowedOrigins.push(process.env.PRODUCTION_FRONTEND_URL)
 }
 
-if (process.env.VERCEL_URL) {
-  allowedOrigins.push(`https://${process.env.VERCEL_URL}`)
-}
-
 allowedOrigins.push('https://studentitrack.vercel.app')
 
 app.set('trust proxy', 1)
@@ -65,14 +61,9 @@ app.use(ipSecurity)
 app.use(securityLogger)
 
 app.use(cors({
-  origin: function(origin, callback) {
-    const req = arguments[2]
+  origin: (origin, callback) => {
     if (!origin) {
       if (NODE_ENV === 'production') {
-        if (req && (req.path === '/api/health' || req.path === '/health')) {
-          console.log('✅ CORS: Allowing health check without origin')
-          return callback(null, true)
-        }
         console.warn('🚨 CORS: Blocked request with no origin in production')
         return callback(new Error('CORS: Origin required'))
       }
