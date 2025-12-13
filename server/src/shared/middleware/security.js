@@ -179,7 +179,7 @@ const securityLogger = (req, res, next) => {
     /<script/i,
     /javascript:/i,
     /on\w+\s*=/i,
-    /\.\./i,
+    /\.\.\
     /eval\(/i,
     /exec\(/i
   ]

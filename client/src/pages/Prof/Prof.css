@@ -599,18 +599,22 @@ display: none !important;
     gap: 1rem !important;
   }
   
+  .flex.flex-col.md\:flex-row.gap-2\\.5,
   .flex.flex-col.md\:flex-row.gap-3,
+  .flex.gap-2\\.5:not(.flex-row),
   .flex.gap-3:not(.flex-row) {
     flex-direction: column !important;
     width: 100% !important;
   }
   
   .flex.flex-col button,
+  .flex.gap-2\\.5 button:not(.flex-row button),
   .flex.gap-3 button:not(.flex-row button) {
     width: 100% !important;
     flex: 1 1 auto !important;
   }
   
+  .flex.flex-row.gap-2\\.5,
   .flex.flex-row.gap-3 {
     flex-direction: row !important;
   }

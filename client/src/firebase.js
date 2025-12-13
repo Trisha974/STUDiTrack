@@ -32,62 +32,10 @@ if (missingVars.length > 0) {
 
 let app
 try {
-  if (!firebaseConfig.apiKey || firebaseConfig.apiKey === 'undefined') {
-    const errorMsg = '❌ CRITICAL: Firebase API key is missing. Please set VITE_FIREBASE_API_KEY in Vercel environment variables.'
-    console.error(errorMsg)
-    if (typeof document !== 'undefined') {
-      document.body.innerHTML = `
-        <div style="padding: 40px; font-family: Arial; text-align: center; max-width: 800px; margin: 50px auto;">
-          <h1 style="color: #7b1113; margin-bottom: 20px;">⚠️ Configuration Error</h1>
-          <p style="font-size: 18px; margin-bottom: 20px; color: #333;">
-            Firebase environment variables are not configured.
-          </p>
-          <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; text-align: left; margin: 20px 0;">
-            <h3 style="color: #7b1113; margin-top: 0;">Required Environment Variables:</h3>
-            <ul style="line-height: 1.8;">
-              <li>VITE_FIREBASE_API_KEY</li>
-              <li>VITE_FIREBASE_AUTH_DOMAIN</li>
-              <li>VITE_FIREBASE_PROJECT_ID</li>
-              <li>VITE_FIREBASE_STORAGE_BUCKET</li>
-              <li>VITE_FIREBASE_MESSAGING_SENDER_ID</li>
-              <li>VITE_FIREBASE_APP_ID</li>
-            </ul>
-          </div>
-          <p style="color: #666; margin-top: 20px;">
-            Please add these variables in Vercel Settings → Environment Variables, then redeploy.
-          </p>
-          <p style="color: #999; font-size: 14px; margin-top: 30px;">
-            See docs/TROUBLESHOOTING_BLANK_PAGE.md for detailed instructions.
-          </p>
-        </div>
-      `
-    }
-    throw new Error(errorMsg)
-  }
   app = initializeApp(firebaseConfig)
   console.log('✅ Firebase initialized successfully')
 } catch (error) {
   console.error('❌ Firebase initialization failed:', error)
-  if (typeof document !== 'undefined' && !document.body.innerHTML.includes('Configuration Error')) {
-    document.body.innerHTML = `
-      <div style="padding: 40px; font-family: Arial; text-align: center; max-width: 800px; margin: 50px auto;">
-        <h1 style="color: #7b1113; margin-bottom: 20px;">❌ Application Error</h1>
-        <p style="font-size: 18px; margin-bottom: 20px; color: #333;">
-          Failed to initialize the application.
-        </p>
-        <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; text-align: left; margin: 20px 0;">
-          <h3 style="color: #7b1113; margin-top: 0;">Error Details:</h3>
-          <pre style="white-space: pre-wrap; word-wrap: break-word; color: #666;">${error.message}</pre>
-        </div>
-        <p style="color: #666; margin-top: 20px;">
-          Please check the browser console (F12) for more details.
-        </p>
-        <p style="color: #999; font-size: 14px; margin-top: 30px;">
-          If this is a configuration issue, see docs/TROUBLESHOOTING_BLANK_PAGE.md
-        </p>
-      </div>
-    `
-  }
   throw error
 }
 

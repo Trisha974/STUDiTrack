@@ -1146,7 +1146,7 @@ function Student() {
                       }`}>
                         <div className="flex items-center justify-between">
                           <div className="min-w-0 flex-1">
-                            <h3 className="font-bold text-white text-sm sm:text-lg md:text-xl flex items-center gap-2 sm:gap-2">
+                            <h3 className="font-bold text-white text-sm sm:text-lg md:text-xl flex items-center gap-1.5 sm:gap-2">
                               <svg className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" />
                               </svg>
@@ -1342,7 +1342,7 @@ function Student() {
                                 <div className="p-2.5 sm:p-4">
                                   {/* Header - Bold title with delete button */}
                                   <div className="flex items-start justify-between mb-1.5 sm:mb-2">
-                                    <div className="flex items-center gap-2 sm:gap-2">
+                                    <div className="flex items-center gap-1.5 sm:gap-2">
                                       <h4 className={`text-xs sm:text-sm font-bold leading-tight ${
                                       isDarkMode
                                           ? urgent ? 'text-red-400' : 'text-white'
