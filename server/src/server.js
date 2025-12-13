@@ -65,9 +65,14 @@ app.use(ipSecurity)
 app.use(securityLogger)
 
 app.use(cors({
-  origin: (origin, callback) => {
+  origin: function(origin, callback) {
+    const req = arguments[2]
     if (!origin) {
       if (NODE_ENV === 'production') {
+        if (req && (req.path === '/api/health' || req.path === '/health')) {
+          console.log('✅ CORS: Allowing health check without origin')
+          return callback(null, true)
+        }
         console.warn('🚨 CORS: Blocked request with no origin in production')
         return callback(new Error('CORS: Origin required'))
       }
