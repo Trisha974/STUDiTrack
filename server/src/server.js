@@ -26,6 +26,7 @@ const NODE_ENV = process.env.NODE_ENV || 'development'
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5177'
 const allowedOrigins = [
   FRONTEND_URL,
+  'https://studentitrack.vercel.app',
   'http://localhost:5173',
   'http://localhost:5174',
   'http://localhost:5175',
@@ -45,8 +46,6 @@ if (process.env.PRODUCTION_FRONTEND_URL) {
   allowedOrigins.push(process.env.PRODUCTION_FRONTEND_URL)
 }
 
-allowedOrigins.push('https://studentitrack.vercel.app')
-
 app.set('trust proxy', 1)
 
 
@@ -64,6 +63,11 @@ app.use(cors({
   origin: (origin, callback) => {
     if (!origin) {
       if (NODE_ENV === 'production') {
+        const req = arguments[2] || {}
+        if (req && (req.path === '/api/health' || req.path === '/health')) {
+          console.log('✅ CORS: Allowing health check without origin')
+          return callback(null, true)
+        }
         console.warn('🚨 CORS: Blocked request with no origin in production')
         return callback(new Error('CORS: Origin required'))
       }

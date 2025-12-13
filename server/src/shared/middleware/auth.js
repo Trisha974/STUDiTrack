@@ -1,34 +1,56 @@
 ﻿const admin = require('firebase-admin')
+const path = require('path')
+const fs = require('fs')
 const Student = require('../../student/models/Student')
 const Professor = require('../../professor/models/Professor')
 
 let firebaseAdminInitialized = false
 
 if (!admin.apps.length) {
-  const hasFirebaseConfig =
-    process.env.FIREBASE_PROJECT_ID &&
-    process.env.FIREBASE_PRIVATE_KEY &&
-    process.env.FIREBASE_CLIENT_EMAIL
-
-  if (hasFirebaseConfig) {
+  const serviceAccountPath = path.join(__dirname, '../../../serviceAccountKey.json')
+  
+  if (fs.existsSync(serviceAccountPath)) {
     try {
+      const serviceAccount = require(serviceAccountPath)
       admin.initializeApp({
-        credential: admin.credential.cert({
-          projectId: process.env.FIREBASE_PROJECT_ID,
-          privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-          clientEmail: process.env.FIREBASE_CLIENT_EMAIL
-        })
+        credential: admin.credential.cert(serviceAccount)
       })
       firebaseAdminInitialized = true
-      console.log('✅ Firebase Admin SDK initialized successfully')
+      console.log('✅ Firebase Admin SDK initialized successfully from serviceAccountKey.json')
     } catch (error) {
-      console.warn('⚠️ Firebase Admin SDK initialization failed:', error.message)
-      console.warn('⚠️ Token verification will not work until Firebase Admin SDK is configured')
+      console.warn('⚠️ Firebase Admin SDK initialization failed from JSON file:', error.message)
+      console.warn('⚠️ Falling back to environment variables...')
     }
-  } else {
-    console.warn('⚠️ Firebase Admin SDK not configured. Set FIREBASE_PROJECT_ID, FIREBASE_PRIVATE_KEY, and FIREBASE_CLIENT_EMAIL in .env')
-    console.warn('⚠️ Token verification will not work until Firebase Admin SDK is configured')
-    console.warn('⚠️ NOTE: This is about the Firebase Admin SDK library, NOT user roles. User roles are ONLY: Professor and Student')
+  }
+  
+  if (!firebaseAdminInitialized) {
+    const hasFirebaseConfig =
+      process.env.FIREBASE_PROJECT_ID &&
+      process.env.FIREBASE_PRIVATE_KEY &&
+      process.env.FIREBASE_CLIENT_EMAIL
+
+    if (hasFirebaseConfig) {
+      try {
+        admin.initializeApp({
+          credential: admin.credential.cert({
+            projectId: process.env.FIREBASE_PROJECT_ID,
+            privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+            clientEmail: process.env.FIREBASE_CLIENT_EMAIL
+          })
+        })
+        firebaseAdminInitialized = true
+        console.log('✅ Firebase Admin SDK initialized successfully from environment variables')
+      } catch (error) {
+        console.warn('⚠️ Firebase Admin SDK initialization failed:', error.message)
+        console.warn('⚠️ Token verification will not work until Firebase Admin SDK is configured')
+      }
+    } else {
+      console.warn('⚠️ Firebase Admin SDK not configured.')
+      console.warn('⚠️ Option 1: Place serviceAccountKey.json in server/ directory')
+      console.warn('⚠️ Option 2: Set FIREBASE_PROJECT_ID, FIREBASE_PRIVATE_KEY, and FIREBASE_CLIENT_EMAIL in .env')
+      console.warn('⚠️ Token verification will not work until Firebase Admin SDK is configured')
+      console.warn('⚠️ NOTE: This is about the Firebase Admin SDK library, NOT user roles. User roles are ONLY: Professor and Student')
+    }
   }
 } else {
   firebaseAdminInitialized = true

@@ -47,6 +47,8 @@ logs/
 # Firebase
 .firebase/
 .firebaserc
+serviceAccountKey.json
+**/serviceAccountKey.json
 
 # Vercel
 .vercel/
